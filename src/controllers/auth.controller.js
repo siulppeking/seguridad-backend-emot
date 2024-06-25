@@ -29,7 +29,7 @@ const login = async (req, res) => {
                 }
             })
         }
-        const token = await createAccessToken({ uid: usuario._id });
+        const token = await createAccessToken({ userId: usuario._id });
         const usuarioAccesoNuevo = new UsuarioAcceso({
             usuario: usuario._id,
             token,
@@ -67,7 +67,7 @@ const loginGoogle = async (req, res) => {
         const usuario = await Usuario.findOne({ correo });
 
         if (usuario) {
-            const token = await createAccessToken({ uid: usuario._id });
+            const token = await createAccessToken({ userId: usuario._id });
             const usuarioAccesoNuevo = new UsuarioAcceso({
                 usuario: usuario._id,
                 token,
@@ -94,7 +94,7 @@ const loginGoogle = async (req, res) => {
 
         await userNew.save();
 
-        const token = await createAccessToken({ uid: userNew._id });
+        const token = await createAccessToken({ userId: userNew._id });
         const usuarioAccesoNuevo = new UsuarioAcceso({
             usuario: userNew._id,
             token,
@@ -141,7 +141,7 @@ const registro = async (req, res) => {
         const hashedPassword = await bcrypt.hash(clave, 10);
         const userNew = new Usuario({ nombreUsuario, correo, clave: hashedPassword });
         const userSaved = await userNew.save();
-        const token = await createAccessToken({ uid: userSaved._id });
+        const token = await createAccessToken({ userId: userSaved._id });
         const usuarioAccesoNuevo = new UsuarioAcceso({
             usuario: userSaved._id,
             token,
@@ -185,7 +185,7 @@ const verificar = async (req, res) => {
                 datos: {
                 }
             });
-            const usuario = await Usuario.findById(token.uid);
+            const usuario = await Usuario.findById(token.userId);
             if (!usuario) return res.status(401).send({
                 respuesta: 'ERROR_TOKEN_USUARIO',
                 mensaje: 'Token invalido para usuario',
@@ -197,7 +197,7 @@ const verificar = async (req, res) => {
                 respuesta: 'OK',
                 mensaje: 'Token valido',
                 datos: {
-                    uid: usuario.id,
+                    userId: usuario.id,
                     nombreUsuario: usuario.nombreUsuario,
                     correo: usuario.correo
                 }
