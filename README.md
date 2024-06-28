@@ -2,7 +2,7 @@
 
 Welcome to the **Node JS - Backend Security Application** repository! This project serves as a backend application built with Node.js and Express. 
 
-## Table of Contents
+## Table of Contents All
 
 - [Installation](#installation)
 - [Environment Variables](#environment-variables)
