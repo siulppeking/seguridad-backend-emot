@@ -1,8 +1,7 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const Usuario = require("../models/usuario");
 const UsuarioAcceso = require('../models/usuarioacceso');
-const { createAccessToken } = require('../helpers/jwt.helper');
+const jwt = require('../helpers/jwt.helper');
 const { googleVerify } = require('../helpers/google.helper');
 
 const login = async (req, res) => {
@@ -29,7 +28,7 @@ const login = async (req, res) => {
                 }
             })
         }
-        const token = await createAccessToken({ userId: usuario._id });
+        const token = await jwt.generarJWT({ userId: usuario._id });
         const usuarioAccesoNuevo = new UsuarioAcceso({
             usuario: usuario._id,
             token,
@@ -43,6 +42,7 @@ const login = async (req, res) => {
             datos: {
                 nombreUsuario: usuario.nombreUsuario,
                 correo,
+                fotoURL: usuario.fotoURL,
                 token
             }
         })
@@ -67,7 +67,7 @@ const loginGoogle = async (req, res) => {
         const usuario = await Usuario.findOne({ correo });
 
         if (usuario) {
-            const token = await createAccessToken({ userId: usuario._id });
+            const token = await jwt.generarJWT({ userId: usuario._id });
             const usuarioAccesoNuevo = new UsuarioAcceso({
                 usuario: usuario._id,
                 token,
@@ -81,6 +81,7 @@ const loginGoogle = async (req, res) => {
                 datos: {
                     nombreUsuario,
                     correo,
+                    fotoURL,
                     token
                 }
             })
@@ -94,7 +95,7 @@ const loginGoogle = async (req, res) => {
 
         await userNew.save();
 
-        const token = await createAccessToken({ userId: userNew._id });
+        const token = await jwt.generarJWT({ userId: userNew._id });
         const usuarioAccesoNuevo = new UsuarioAcceso({
             usuario: userNew._id,
             token,
@@ -108,6 +109,7 @@ const loginGoogle = async (req, res) => {
             datos: {
                 nombreUsuario: userNew.nombreUsuario,
                 correo,
+                fotoURL: userNew.fotoURL,
                 token
             }
         })
@@ -140,10 +142,10 @@ const registro = async (req, res) => {
         const nombreUsuario = 'usuario' + random;
         const hashedPassword = await bcrypt.hash(clave, 10);
         const userNew = new Usuario({ nombreUsuario, correo, clave: hashedPassword });
-        const userSaved = await userNew.save();
-        const token = await createAccessToken({ userId: userSaved._id });
+        await userNew.save();
+        const token = await jwt.generarJWT({ userId: userNew._id });
         const usuarioAccesoNuevo = new UsuarioAcceso({
-            usuario: userSaved._id,
+            usuario: userNew._id,
             token,
             host: clientIp,
             browser: userAgent
@@ -153,8 +155,9 @@ const registro = async (req, res) => {
             respuesta: 'OK',
             mensaje: 'Usuario creado correctamente',
             datos: {
-                nombreUsuario: userSaved.nombreUsuario,
+                nombreUsuario: userNew.nombreUsuario,
                 correo,
+                fotoURL: userNew.fotoURL,
                 token
             }
         })
@@ -170,38 +173,24 @@ const registro = async (req, res) => {
 
 const verificar = async (req, res) => {
     try {
-        const token = req.header('authorization');
-        if (!token) return res.status(401).send({
-            respuesta: 'ERROR_TOKEN_VACIO',
-            mensaje: 'Token requerido',
+        const { userId } = req.token;
+        const usuario = await Usuario.findById(userId);
+        if (!usuario) return res.status(401).send({
+            respuesta: 'ERROR_TOKEN_USUARIO',
+            mensaje: 'Token invalido para usuario',
             datos: {
             }
         });
 
-        jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, token) => {
-            if (err) return res.status(401).send({
-                respuesta: 'ERROR_TOKEN_INVALIDO',
-                mensaje: 'Token invalido',
-                datos: {
-                }
-            });
-            const usuario = await Usuario.findById(token.userId);
-            if (!usuario) return res.status(401).send({
-                respuesta: 'ERROR_TOKEN_USUARIO',
-                mensaje: 'Token invalido para usuario',
-                datos: {
-                }
-            });
-
-            return res.status(200).send({
-                respuesta: 'OK',
-                mensaje: 'Token valido',
-                datos: {
-                    userId: usuario.id,
-                    nombreUsuario: usuario.nombreUsuario,
-                    correo: usuario.correo
-                }
-            })
+        return res.status(200).send({
+            respuesta: 'OK',
+            mensaje: 'Token valido',
+            datos: {
+                userId: usuario.id,
+                nombreUsuario: usuario.nombreUsuario,
+                fotoURL: usuario.fotoURL,
+                correo: usuario.correo
+            }
         })
     } catch (error) {
         return res.status(500).send({
